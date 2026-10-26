@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Quick Count PEMIKA 2027/2028</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --primary: #111827; --secondary: #D4AF37; --bg: #F8F9FA; --card: #FFFFFF; }
+    body { font-family: 'Poppins', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--primary); }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    .header { text-align: center; margin-bottom: 30px; padding: 30px; background: linear-gradient(-45deg, #111827, #1F2937); color: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-bottom: 4px solid var(--secondary); }
+    .header h1 { margin: 0; font-size: 2rem; }
+    .header p { color: var(--secondary); margin-top: 10px; font-weight: 500; }
+    .header .live-badge { display: inline-block; background: #DC2626; color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-top: 15px; animation: pulse 1.5s infinite; }
+
+    .chart-container { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.06); margin-bottom: 20px; position: relative; }
+    .stats-box { display: flex; justify-content: space-around; background: var(--card); padding: 20px; border-radius: 16px; box-shadow: 0 8px 25px rgba(0,0,0,0.06); text-align: center; margin-bottom: 20px;}
+    .stat-item h3 { margin: 0; color: #6B7280; font-size: 1rem; }
+    .stat-item p { margin: 5px 0 0 0; font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+    .stat-item.gold p { color: var(--secondary); }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Live Chart PEMIKA 2027/2028</h1>
+    <p>Hasil Perhitungan Suara SMAN 14 Surabaya</p>
+    <div class="live-badge">🔴 LIVE QUICK COUNT</div>
+  </div>
+
+  <div class="stats-box">
+    <div class="stat-item">
+      <h3>Paslon 1</h3>
+      <p id="suaraPaslon1">0</p>
+    </div>
+    <div class="stat-item gold">
+      <h3>Total Suara Masuk</h3>
+      <p id="suaraTotal">0</p>
+    </div>
+    <div class="stat-item">
+      <h3>Paslon 2</h3>
+      <p id="suaraPaslon2">0</p>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="voteChart"></canvas>
+  </div>
+</div>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAe-P9VjI5KHHvdXvZFVs1dz4bzppDRReDUoFWWFMgScemHOq8BzDsz_22NvRrYVY/exec";
+
+  const ctx = document.getElementById('voteChart').getContext('2d');
+  
+  const topLabelsPlugin = {
+    id: 'topLabels',
+    afterDatasetsDraw(chart, args, pluginOptions) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset, i) => {
+        chart.getDatasetMeta(i).data.forEach((bar, index) => {
+          const dataValue = dataset.data[index];
+          ctx.fillStyle = '#111827';
+          ctx.font = 'bold 16px Poppins';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(dataValue + " Suara", bar.x, bar.y - 5);
+        });
+      });
+    }
+  };
+
+  const voteChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Kandidat Paslon 1', 'Kandidat Paslon 2'],
+      datasets: [{
+        label: 'Perolehan Suara',
+        data: [0, 0],
+        backgroundColor: [
+          'rgba(17, 24, 39, 0.8)',
+          'rgba(212, 175, 55, 0.8)'
+        ],
+        borderColor: [
+          'rgba(17, 24, 39, 1)',
+          'rgba(212, 175, 55, 1)'
+        ],
+        borderWidth: 2,
+        borderRadius: 8,
+        barPercentage: 0.6
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: {
+        duration: 1000,
+        easing: 'easeOutQuart'
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { borderDash: [5, 5], color: '#E5E7EB' },
+          ticks: { stepSize: 1 }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Poppins', size: 14, weight: 'bold' } }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          titleFont: { family: 'Poppins' },
+          bodyFont: { family: 'Poppins', size: 14 }
+        }
+      }
+    },
+    plugins: [topLabelsPlugin]
+  });
+
+  async function fetchLiveVotes() {
+    try {
+      const response = await fetch(SCRIPT_URL);
+      const data = await response.json();
+
+      document.getElementById('suaraPaslon1').innerText = data.paslon1;
+      document.getElementById('suaraPaslon2').innerText = data.paslon2;
+      document.getElementById('suaraTotal').innerText = data.total;
+
+      voteChart.data.datasets[0].data = [data.paslon1, data.paslon2];
+      voteChart.update();
+      
+    } catch (error) {
+      console.error("Gagal memuat data live:", error);
+    }
+  }
+
+  fetchLiveVotes();
+  setInterval(fetchLiveVotes, 5000);
+
+</script>
+
+</body>
+</html>
